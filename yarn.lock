@@ -1077,6 +1077,11 @@ has@^1.0.3:
   dependencies:
     function-bind "^1.1.1"
 
+hls.js@^1.2.4:
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/hls.js/-/hls.js-1.2.4.tgz#761d7f700c3da5c1701257c24c1db7ababea14eb"
+  integrity sha512-yC3K79Kzq1W+OgjT12JxKMDXv9DbfvulppxmPBl7D04SaTyd2IwWk5eNASQV1mUaPlKbjr16yI9292qpSGo0ig==
+
 ignore@^5.2.0:
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/ignore/-/ignore-5.2.0.tgz#6d3bac8fa7fe0d45d9f9be7bac2fc279577e345a"
