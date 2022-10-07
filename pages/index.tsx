@@ -4,6 +4,15 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import Layout from "../components/layout";
 import Hls from "hls.js";
+import { getApp } from "firebase/app";
+import {
+  getAuth,
+  signInWithRedirect,
+  signOut,
+  TwitterAuthProvider,
+  User,
+  getRedirectResult,
+} from "firebase/auth";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/output.m3u8";
@@ -20,6 +29,19 @@ const Home = () => {
       hls.attachMedia(videoRef.current);
     }
   }, [videoRef]);
+
+  const app = getApp();
+  const provider = new TwitterAuthProvider();
+  const auth = getAuth(app);
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        setUser(user);
+      }
+    });
+  }, [auth]);
+
   return (
     <Layout>
       <Head>
@@ -36,6 +58,31 @@ const Home = () => {
           className="mx-auto max-h-[50vh] max-w-full"
         ></video>
         <div className="text-center">ウラルのゲーム部屋</div>
+        {user ? (
+          <button
+            onClick={() => {
+              signOut(auth).then(() => {
+                setUser(null);
+              });
+            }}
+          >
+            ログアウト
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              signInWithRedirect(auth, provider);
+            }}
+          >
+            Twitterでログイン
+          </button>
+        )}
+        {user?.photoURL && (
+          <div>
+            <Image src={user.photoURL} alt="" width={40} height={40} />
+          </div>
+        )}
+        <div>{user ? `ログイン中：${user.displayName}` : "未ログイン"}</div>
       </div>
     </Layout>
   );
