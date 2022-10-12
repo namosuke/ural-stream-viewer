@@ -13,6 +13,7 @@ import {
   User,
   getRedirectResult,
 } from "firebase/auth";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/output.m3u8";
@@ -20,10 +21,8 @@ const Home = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (videoRef.current?.canPlayType("application/vnd.apple.mpegurl")) {
-      console.log("Using native HLS");
       setVideoSrc(source);
     } else if (videoRef.current && Hls.isSupported()) {
-      console.log("Using hls.js");
       const hls = new Hls();
       hls.loadSource(source);
       hls.attachMedia(videoRef.current);
@@ -34,18 +33,36 @@ const Home = () => {
   const provider = new TwitterAuthProvider();
   const auth = getAuth(app);
   const [user, setUser] = useState<User | null>(null);
+  const db = getFirestore(app);
   useEffect(() => {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
       }
     });
-  }, [auth]);
+    getRedirectResult(auth).then((result) => {
+      const credintial =
+        result && TwitterAuthProvider.credentialFromResult(result);
+      const token = credintial?.accessToken;
+      const secret = credintial?.secret;
+      const user = result?.user;
+      if (token && secret && user) {
+        setDoc(doc(db, "users", user.uid), {
+          name: user.displayName,
+          photoURL: user.photoURL,
+        });
+        setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
+          token,
+          secret,
+        });
+      }
+    });
+  }, [auth, db]);
 
   return (
     <Layout>
       <Head>
-        <title>ウラルのゲーム部屋</title>
+        <title>ウラルのゲームライブ</title>
       </Head>
       <div className="h-full min-h-screen w-full">
         <video
@@ -57,7 +74,7 @@ const Home = () => {
           controls
           className="mx-auto max-h-[50vh] max-w-full"
         ></video>
-        <div className="text-center">ウラルのゲーム部屋</div>
+        <div className="text-center">ウラルのゲームライブ</div>
         {user ? (
           <button
             onClick={() => {
