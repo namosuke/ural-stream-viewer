@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, useMemo } from "react";
 import Layout from "../components/layout";
 import Hls from "hls.js";
 import { getApp } from "firebase/app";
@@ -13,7 +13,19 @@ import {
   User,
   getRedirectResult,
 } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  addDoc,
+  collection,
+  serverTimestamp,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+} from "firebase/firestore";
+import ChatIcon from "../components/chat-icon";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/output.m3u8";
@@ -29,11 +41,11 @@ const Home = () => {
     }
   }, [videoRef]);
 
-  const app = getApp();
+  const app = useMemo(() => getApp(), []);
   const provider = new TwitterAuthProvider();
-  const auth = getAuth(app);
+  const auth = useMemo(() => getAuth(app), [app]);
   const [user, setUser] = useState<User | null>(null);
-  const db = getFirestore(app);
+  const db = useMemo(() => getFirestore(app), [app]);
   useEffect(() => {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -59,22 +71,69 @@ const Home = () => {
     });
   }, [auth, db]);
 
+  const [chatInput, setChatInput] = useState("");
+  const chatSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (user !== null && chatInput !== "") {
+      addDoc(collection(db, "chats"), {
+        uid: user.uid,
+        createdAt: serverTimestamp(),
+        text: chatInput,
+        name: user.displayName,
+        photoURL: user.photoURL,
+      });
+      setChatInput("");
+    }
+  };
+  type Chat = {
+    id: string;
+    uid: string;
+    createdAt?: Date;
+    text?: string;
+    name?: string;
+    photoURL?: string;
+  };
+  const [chats, setChats] = useState<Chat[]>([]);
+  useEffect(() => {
+    const q = query(
+      collection(db, "chats"),
+      orderBy("createdAt", "asc"),
+      limit(100)
+    );
+    onSnapshot(q, (QuerySnapshot) => {
+      setChats(
+        QuerySnapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            uid: doc.data().uid,
+            createdAt: doc.data().createdAt?.toDate(),
+            text: doc.data().text,
+            name: doc.data().name,
+            photoURL: doc.data().photoURL,
+          }))
+          .reverse()
+      );
+    });
+  }, [db]);
+
   return (
     <Layout>
       <Head>
         <title>ウラルのゲームライブ</title>
       </Head>
       <div className="h-full min-h-screen w-full">
-        <video
-          src={videoSrc}
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          controls
-          className="mx-auto max-h-[50vh] max-w-full"
-        ></video>
-        <div className="text-center">ウラルのゲームライブ</div>
+        <div className="m-2 text-center">ウラルのゲームライブ</div>
+        <div className="sticky top-0 z-10 bg-black">
+          <video
+            src={videoSrc}
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            controls
+            className="mx-auto max-h-[50vh] max-w-full"
+          ></video>
+        </div>
         {user ? (
           <button
             onClick={() => {
@@ -82,6 +141,7 @@ const Home = () => {
                 setUser(null);
               });
             }}
+            className="m-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
           >
             ログアウト
           </button>
@@ -90,16 +150,43 @@ const Home = () => {
             onClick={() => {
               signInWithRedirect(auth, provider);
             }}
+            className="m-2 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
           >
-            Twitterでログイン
+            Twitterログインでチャットに参加
           </button>
         )}
-        {user?.photoURL && (
+        {user && <span>ユーザー名：{user.displayName}</span>}
+        <div className="mx-auto max-w-3xl">
+          {user && (
+            <form onSubmit={chatSubmit}>
+              <div className="p-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  className="w-full rounded-md border-2 border-gray-200 p-1"
+                  placeholder="チャットを入力"
+                />
+              </div>
+            </form>
+          )}
           <div>
-            <Image src={user.photoURL} alt="" width={40} height={40} />
+            {chats.map((chat) => (
+              <div key={chat.id} className="m-4 flex border-b-2 pb-4">
+                <ChatIcon src={chat.photoURL ?? "/user.png"} />
+                <div className="mx-2 flex-1">
+                  <div>
+                    <span className="font-bold">{chat.name}</span>{" "}
+                    <span className="text-sm text-gray-400">
+                      {chat.createdAt?.toLocaleString()}
+                    </span>
+                  </div>
+                  <div>{chat.text}</div>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
-        <div>{user ? `ログイン中：${user.displayName}` : "未ログイン"}</div>
+        </div>
       </div>
     </Layout>
   );
