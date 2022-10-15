@@ -166,6 +166,7 @@ const Home = () => {
                   onChange={(e) => setChatInput(e.target.value)}
                   className="w-full rounded-md border-2 border-gray-200 p-1"
                   placeholder="チャットを入力"
+                  enterKeyHint="send"
                 />
               </div>
             </form>
