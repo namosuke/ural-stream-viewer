@@ -97,21 +97,19 @@ const Home = () => {
   useEffect(() => {
     const q = query(
       collection(db, "chats"),
-      orderBy("createdAt", "asc"),
+      orderBy("createdAt", "desc"),
       limit(100)
     );
     onSnapshot(q, (QuerySnapshot) => {
       setChats(
-        QuerySnapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            uid: doc.data().uid,
-            createdAt: doc.data().createdAt?.toDate(),
-            text: doc.data().text,
-            name: doc.data().name,
-            photoURL: doc.data().photoURL,
-          }))
-          .reverse()
+        QuerySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          uid: doc.data().uid,
+          createdAt: doc.data().createdAt?.toDate(),
+          text: doc.data().text,
+          name: doc.data().name,
+          photoURL: doc.data().photoURL,
+        }))
       );
     });
   }, [db]);
