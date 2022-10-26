@@ -53,7 +53,6 @@ const Home = () => {
       }
     });
     getRedirectResult(auth).then((result) => {
-      console.log(result);
       const credintial =
         result && TwitterAuthProvider.credentialFromResult(result);
       const token = credintial?.accessToken;
