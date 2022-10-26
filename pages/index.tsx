@@ -7,11 +7,10 @@ import Hls from "hls.js";
 import { getApp } from "firebase/app";
 import {
   getAuth,
-  signInWithRedirect,
   signOut,
   TwitterAuthProvider,
   User,
-  getRedirectResult,
+  signInWithPopup,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -52,24 +51,7 @@ const Home = () => {
         setUser(user);
       }
     });
-    getRedirectResult(auth).then((result) => {
-      const credintial =
-        result && TwitterAuthProvider.credentialFromResult(result);
-      const token = credintial?.accessToken;
-      const secret = credintial?.secret;
-      const user = result?.user;
-      if (token && secret && user) {
-        setDoc(doc(db, "users", user.uid), {
-          name: user.displayName,
-          photoURL: user.photoURL,
-        });
-        setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
-          token,
-          secret,
-        });
-      }
-    });
-  }, [auth, db]);
+  }, [auth]);
 
   const [chatInput, setChatInput] = useState("");
   const chatSubmit = (e: FormEvent) => {
@@ -146,7 +128,23 @@ const Home = () => {
         ) : (
           <button
             onClick={() => {
-              signInWithRedirect(auth, provider);
+              signInWithPopup(auth, provider).then((result) => {
+                const credintial =
+                  result && TwitterAuthProvider.credentialFromResult(result);
+                const token = credintial?.accessToken;
+                const secret = credintial?.secret;
+                const user = result?.user;
+                if (token && secret && user) {
+                  setDoc(doc(db, "users", user.uid), {
+                    name: user.displayName,
+                    photoURL: user.photoURL,
+                  });
+                  setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
+                    token,
+                    secret,
+                  });
+                }
+              });
             }}
             className="m-2 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
           >
