@@ -100,6 +100,19 @@ const Home = () => {
     <Layout>
       <Head>
         <title>ウラルのゲームライブ</title>
+        <meta property="og:url" content="https://live.ural.ink" />
+        <meta property="og:type" content="" />
+        <meta property="og:title" content="ウラルのゲームライブ" />
+        <meta
+          property="og:description"
+          content="ウラルが自分用に作った動画配信システム！"
+        />
+        <meta
+          property="og:image"
+          content={`https://web.live.omugi.org/img/thumb.png?t=${Date.now()}`}
+        />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@barley_ural" />
       </Head>
       <div className="h-full min-h-screen w-full">
         <div className="m-2 text-center">ウラルのゲームライブ</div>
