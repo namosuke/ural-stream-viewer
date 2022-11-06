@@ -25,6 +25,10 @@ import {
   limit,
 } from "firebase/firestore";
 import ChatIcon from "../components/chat-icon";
+import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
+import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/output.m3u8";
@@ -96,6 +100,34 @@ const Home = () => {
     });
   }, [db]);
 
+  const [isMuted, setIsMuted] = useState(true);
+
+  const [isPipSupported, setIsPipSupported] = useState(false);
+  const [isPipActive, setIsPipActive] = useState(false);
+  useEffect(() => {
+    setIsPipSupported(document.pictureInPictureEnabled);
+    videoRef.current?.addEventListener("enterpictureinpicture", () => {
+      setIsPipActive(true);
+    });
+    videoRef.current?.addEventListener("leavepictureinpicture", () => {
+      setIsPipActive(false);
+    });
+  }, []);
+  const pipClick = async () => {
+    if (!videoRef.current) return;
+    try {
+      if (videoRef.current !== document.pictureInPictureElement) {
+        await videoRef.current.requestPictureInPicture();
+        setIsPipActive(true);
+      } else {
+        await document.exitPictureInPicture();
+        setIsPipActive(false);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <Layout>
       <Head>
@@ -121,50 +153,85 @@ const Home = () => {
             src={videoSrc}
             ref={videoRef}
             autoPlay
-            muted
+            muted={isMuted}
             playsInline
             controls
             className="mx-auto max-h-[50vh] max-w-full"
           ></video>
+          {isMuted && (
+            <button
+              className="absolute right-0 bottom-0 left-0 top-0"
+              onClick={() => {
+                setIsMuted(false);
+              }}
+            >
+              <div className="m-6 inline-block rounded-lg bg-gray-800 py-4 px-6 text-lg text-white">
+                <div className="flex items-center">
+                  <VolumeOffRoundedIcon className="mr-2 text-3xl" />
+                  タップしてミュート解除
+                </div>
+              </div>
+            </button>
+          )}
         </div>
-        {user ? (
-          <button
-            onClick={() => {
-              signOut(auth).then(() => {
-                setUser(null);
-              });
-            }}
-            className="m-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
-          >
-            ログアウト
-          </button>
-        ) : (
-          <button
-            onClick={() => {
-              signInWithPopup(auth, provider).then((result) => {
-                const credintial =
-                  result && TwitterAuthProvider.credentialFromResult(result);
-                const token = credintial?.accessToken;
-                const secret = credintial?.secret;
-                const user = result?.user;
-                if (token && secret && user) {
-                  setDoc(doc(db, "users", user.uid), {
-                    name: user.displayName,
-                    photoURL: user.photoURL,
+        <div className="flex justify-between">
+          {user ? (
+            <div>
+              <button
+                onClick={() => {
+                  signOut(auth).then(() => {
+                    setUser(null);
                   });
-                  setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
-                    token,
-                    secret,
-                  });
-                }
-              });
-            }}
-            className="m-2 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
-          >
-            Twitterログインでチャットに参加
-          </button>
-        )}
-        {user && <span>ユーザー名：{user.displayName}</span>}
+                }}
+                className="m-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
+              >
+                ログアウト
+              </button>
+              <span>ユーザー名：{user.displayName}</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                signInWithPopup(auth, provider).then((result) => {
+                  const credintial =
+                    result && TwitterAuthProvider.credentialFromResult(result);
+                  const token = credintial?.accessToken;
+                  const secret = credintial?.secret;
+                  const user = result?.user;
+                  if (token && secret && user) {
+                    setDoc(doc(db, "users", user.uid), {
+                      name: user.displayName,
+                      photoURL: user.photoURL,
+                    });
+                    setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
+                      token,
+                      secret,
+                    });
+                  }
+                });
+              }}
+              className="m-2 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
+            >
+              Twitterログインでチャットに参加
+            </button>
+          )}
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isPipSupported && isPipActive}
+                onChange={pipClick}
+                disabled={!isPipSupported}
+              />
+            }
+            label={
+              <PictureInPictureIcon
+                titleAccess={`ピクチャ・イン・ピクチャを${
+                  isPipActive ? "無効" : "有効"
+                }にする`}
+              />
+            }
+          />
+        </div>
         <div className="mx-auto max-w-3xl">
           {user && (
             <form onSubmit={chatSubmit}>
