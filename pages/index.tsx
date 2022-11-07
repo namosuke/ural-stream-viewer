@@ -29,6 +29,7 @@ import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
+import TwitterIcon from "@mui/icons-material/Twitter";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/output.m3u8";
@@ -174,7 +175,22 @@ const Home = () => {
             </button>
           )}
         </div>
-        <div className="flex justify-between">
+        <div className="mx-auto max-w-3xl">
+          <div className="flex items-center justify-between">
+            <div className="m-2 text-sm text-gray-400">00:00:00</div>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isPipSupported && isPipActive}
+                  onChange={pipClick}
+                  disabled={!isPipSupported}
+                />
+              }
+              label={
+                <PictureInPictureIcon titleAccess="ピクチャ・イン・ピクチャを有効にする" />
+              }
+            />
+          </div>
           {user ? (
             <div>
               <button
@@ -210,25 +226,12 @@ const Home = () => {
                   }
                 });
               }}
-              className="m-2 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
+              className="m-2 flex items-center rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
             >
-              Twitterログインでチャットに参加
+              <TwitterIcon className="mr-2" />
+              <div>Twitterログインでチャットに参加</div>
             </button>
           )}
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isPipSupported && isPipActive}
-                onChange={pipClick}
-                disabled={!isPipSupported}
-              />
-            }
-            label={
-              <PictureInPictureIcon titleAccess="ピクチャ・イン・ピクチャを有効にする" />
-            }
-          />
-        </div>
-        <div className="mx-auto max-w-3xl">
           {user && (
             <form onSubmit={chatSubmit}>
               <div className="p-2">
