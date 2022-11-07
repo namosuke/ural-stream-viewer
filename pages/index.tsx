@@ -224,11 +224,7 @@ const Home = () => {
               />
             }
             label={
-              <PictureInPictureIcon
-                titleAccess={`ピクチャ・イン・ピクチャを${
-                  isPipActive ? "無効" : "有効"
-                }にする`}
-              />
+              <PictureInPictureIcon titleAccess="ピクチャ・イン・ピクチャを有効にする" />
             }
           />
         </div>
