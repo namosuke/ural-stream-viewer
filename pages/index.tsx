@@ -30,26 +30,68 @@ import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TwitterIcon from "@mui/icons-material/Twitter";
+import ElapsedTime from "../components/elapsedTime";
+import ElapsedTimeAbout from "../components/elapsedTimeAbout";
 
 const Home = () => {
-  const source = "https://live.omugi.org/live/output.m3u8";
+  const source = "https://live.omugi.org/live/index.m3u8";
   const [videoSrc, setVideoSrc] = useState<string | undefined>();
   const videoRef = useRef<HTMLVideoElement>(null);
-  useEffect(() => {
-    if (videoRef.current?.canPlayType("application/vnd.apple.mpegurl")) {
-      setVideoSrc(source);
-    } else if (videoRef.current && Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(source);
-      hls.attachMedia(videoRef.current);
-    }
-  }, [videoRef]);
+  const hls = useRef<Hls>();
 
   const app = useMemo(() => getApp(), []);
   const provider = new TwitterAuthProvider();
   const auth = useMemo(() => getAuth(app), [app]);
   const [user, setUser] = useState<User | null>(null);
   const db = useMemo(() => getFirestore(app), [app]);
+
+  const [chatInput, setChatInput] = useState("");
+  type Chat = {
+    id: string;
+    uid: string;
+    createdAt?: Date;
+    text?: string;
+    name?: string;
+    photoURL?: string;
+  };
+  const [chats, setChats] = useState<Chat[]>([]);
+
+  const [isMuted, setIsMuted] = useState(true);
+
+  const [isPipSupported, setIsPipSupported] = useState(false);
+  const [isPipActive, setIsPipActive] = useState(false);
+
+  type Publish = {
+    createdAt: Date;
+    status: "liveStarted" | "liveEnded";
+  };
+  const [publish, setPublish] = useState<Publish>();
+
+  useEffect(() => {
+    (async () => {
+      if (publish?.status === "liveStarted") {
+        // リクエストが成功するまで再送
+        while (
+          await fetch(source)
+            .then((res) => !res.ok)
+            .catch(() => true)
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        if (videoRef.current?.canPlayType("application/vnd.apple.mpegurl")) {
+          setVideoSrc(source);
+        } else if (videoRef.current && Hls.isSupported()) {
+          hls.current = new Hls();
+          hls.current.loadSource(source);
+          hls.current.attachMedia(videoRef.current);
+        }
+      } else if (publish?.status === "liveEnded") {
+        setVideoSrc(undefined);
+        hls.current?.destroy();
+      }
+    })();
+  }, [videoRef, publish]);
+
   useEffect(() => {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -58,7 +100,6 @@ const Home = () => {
     });
   }, [auth]);
 
-  const [chatInput, setChatInput] = useState("");
   const chatSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (user !== null && chatInput !== "") {
@@ -72,15 +113,6 @@ const Home = () => {
       setChatInput("");
     }
   };
-  type Chat = {
-    id: string;
-    uid: string;
-    createdAt?: Date;
-    text?: string;
-    name?: string;
-    photoURL?: string;
-  };
-  const [chats, setChats] = useState<Chat[]>([]);
   useEffect(() => {
     const q = query(
       collection(db, "chats"),
@@ -101,10 +133,6 @@ const Home = () => {
     });
   }, [db]);
 
-  const [isMuted, setIsMuted] = useState(true);
-
-  const [isPipSupported, setIsPipSupported] = useState(false);
-  const [isPipActive, setIsPipActive] = useState(false);
   useEffect(() => {
     setIsPipSupported(document.pictureInPictureEnabled);
     videoRef.current?.addEventListener("enterpictureinpicture", () => {
@@ -129,6 +157,22 @@ const Home = () => {
     }
   };
 
+  useEffect(() => {
+    const q = query(
+      collection(db, "publishes"),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    );
+    onSnapshot(q, (QuerySnapshot) => {
+      setPublish(
+        QuerySnapshot.docs.map((doc) => ({
+          createdAt: doc.data().createdAt.toDate(),
+          status: doc.data().status,
+        }))[0]
+      );
+    });
+  }, [db]);
+
   return (
     <Layout>
       <Head>
@@ -149,48 +193,66 @@ const Home = () => {
       </Head>
       <div className="h-full min-h-screen w-full">
         <div className="m-2 text-center">ウラルのゲームライブ</div>
-        <div className="sticky top-0 z-10 bg-black">
-          <video
-            src={videoSrc}
-            ref={videoRef}
-            autoPlay
-            muted={isMuted}
-            playsInline
-            controls
-            className="mx-auto max-h-[50vh] max-w-full"
-          ></video>
-          {isMuted && (
-            <button
-              className="absolute right-0 bottom-0 left-0 top-0"
-              onClick={() => {
-                setIsMuted(false);
-              }}
-            >
-              <div className="m-6 inline-block rounded-lg bg-gray-800 py-4 px-6 text-lg text-white">
-                <div className="flex items-center">
-                  <VolumeOffRoundedIcon className="mr-2 text-3xl" />
-                  タップしてミュート解除
+        {publish?.status === "liveStarted" && (
+          <div className="sticky top-0 z-10 bg-black">
+            <video
+              src={videoSrc}
+              ref={videoRef}
+              autoPlay
+              muted={isMuted}
+              playsInline
+              controls
+              className="mx-auto max-h-[50vh] max-w-full"
+            ></video>
+            {isMuted && (
+              <button
+                className="absolute right-0 bottom-0 left-0 top-0"
+                onClick={() => {
+                  setIsMuted(false);
+                }}
+              >
+                <div className="m-6 inline-block rounded-lg bg-gray-800 py-4 px-6 text-lg text-white">
+                  <div className="flex items-center">
+                    <VolumeOffRoundedIcon className="mr-2 text-3xl" />
+                    ミュート解除
+                  </div>
                 </div>
-              </div>
-            </button>
-          )}
-        </div>
-        <div className="mx-auto max-w-3xl">
-          <div className="flex items-center justify-between">
-            <div className="m-2 text-sm text-gray-400">00:00:00</div>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={isPipSupported && isPipActive}
-                  onChange={pipClick}
-                  disabled={!isPipSupported}
-                />
-              }
-              label={
-                <PictureInPictureIcon titleAccess="ピクチャ・イン・ピクチャを有効にする" />
-              }
-            />
+              </button>
+            )}
           </div>
+        )}
+        <div className="mx-auto max-w-3xl">
+          {publish?.status === "liveStarted" ? (
+            <div className="flex items-center justify-between">
+              <div className="m-2 text-sm text-gray-400">
+                <ElapsedTime from={publish.createdAt} />
+              </div>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isPipSupported && isPipActive}
+                    onChange={pipClick}
+                    disabled={!isPipSupported}
+                  />
+                }
+                label={
+                  <PictureInPictureIcon titleAccess="ピクチャ・イン・ピクチャを有効にする" />
+                }
+              />
+            </div>
+          ) : (
+            <div className="m-2 text-sm text-gray-400">
+              {publish?.status === "liveEnded" ? (
+                <>
+                  ライブは
+                  <ElapsedTimeAbout from={publish.createdAt} />
+                  前に終了しました
+                </>
+              ) : (
+                "Loading..."
+              )}
+            </div>
+          )}
           {user ? (
             <div>
               <button
