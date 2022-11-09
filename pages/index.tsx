@@ -30,7 +30,7 @@ import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TwitterIcon from "@mui/icons-material/Twitter";
-import ElapsedTime from "../components/elapsed_time";
+import ElapsedTime from "../components/elapsed-time";
 import ElapsedTimeAbout from "../components/elapsed-time-about";
 
 const Home = () => {
