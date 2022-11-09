@@ -4,7 +4,7 @@ import { getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import ChatIcon from "../components/chat-icon";
 
-const CommentFlow = () => {
+const ChatStream = () => {
   const app = useMemo(() => getApp(), []);
   const db = useMemo(() => getFirestore(app), [app]);
   const chats = useChats(db);
@@ -18,13 +18,13 @@ const CommentFlow = () => {
       }}
     >
       {chats.map((chat) => (
-        <div key={chat.id} className="flex">
-          <ChatIcon src={chat.photoURL ?? "/user.png"} size={60} />
-          <div>{chat.text}</div>
+        <div key={chat.id} className="flex items-center">
+          <ChatIcon src={chat.photoURL ?? "/user.png"} size={70} />
+          <div className="ml-4">{chat.text}</div>
         </div>
       ))}
     </div>
   );
 };
 
-export default CommentFlow;
+export default ChatStream;
