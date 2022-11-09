@@ -24,14 +24,14 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
-import ChatIcon from "../components/chat-icon";
+import ChatIcon from "../components/chat_icon";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TwitterIcon from "@mui/icons-material/Twitter";
-import ElapsedTime from "../components/elapsedTime";
-import ElapsedTimeAbout from "../components/elapsedTimeAbout";
+import ElapsedTime from "../components/elapsed_time";
+import ElapsedTimeAbout from "../components/elapsed_time_about";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/index.m3u8";
