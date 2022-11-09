@@ -10,3 +10,7 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+
+const CommentFlow = () => {};
+
+export default CommentFlow;
