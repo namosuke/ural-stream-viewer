@@ -32,6 +32,7 @@ import Switch from "@mui/material/Switch";
 import TwitterIcon from "@mui/icons-material/Twitter";
 import ElapsedTime from "../components/elapsed-time";
 import ElapsedTimeAbout from "../components/elapsed-time-about";
+import { useChats } from "../hooks/use-chats";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/index.m3u8";
@@ -46,15 +47,8 @@ const Home = () => {
   const db = useMemo(() => getFirestore(app), [app]);
 
   const [chatInput, setChatInput] = useState("");
-  type Chat = {
-    id: string;
-    uid: string;
-    createdAt?: Date;
-    text?: string;
-    name?: string;
-    photoURL?: string;
-  };
-  const [chats, setChats] = useState<Chat[]>([]);
+
+  const chats = useChats(db);
 
   const [isMuted, setIsMuted] = useState(true);
 
@@ -113,25 +107,6 @@ const Home = () => {
       setChatInput("");
     }
   };
-  useEffect(() => {
-    const q = query(
-      collection(db, "chats"),
-      orderBy("createdAt", "desc"),
-      limit(100)
-    );
-    onSnapshot(q, (QuerySnapshot) => {
-      setChats(
-        QuerySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          uid: doc.data().uid,
-          createdAt: doc.data().createdAt?.toDate(),
-          text: doc.data().text,
-          name: doc.data().name,
-          photoURL: doc.data().photoURL,
-        }))
-      );
-    });
-  }, [db]);
 
   useEffect(() => {
     setIsPipSupported(document.pictureInPictureEnabled);
