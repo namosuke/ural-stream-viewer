@@ -3,19 +3,20 @@ import Image from "next/image";
 export type ChatIconProps = {
   src: string;
   alt?: string;
-  size?: number;
+  size?: number | string;
 };
 
-const ChatIcon = ({ src, alt, size }: ChatIconProps) => {
+const ChatIcon = ({ src, alt = "", size = 40 }: ChatIconProps) => {
   return (
-    <Image
-      src={src}
-      alt={alt ?? ""}
-      width={size ?? 100}
-      height={size ?? 100}
-      layout="responsive"
-      className="rounded-full"
-    />
+    <div
+      style={{
+        position: "relative",
+        width: size,
+        height: size,
+      }}
+    >
+      <Image src={src} alt={alt} fill className="rounded-full" />
+    </div>
   );
 };
 

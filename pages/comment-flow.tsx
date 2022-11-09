@@ -19,7 +19,7 @@ const CommentFlow = () => {
     >
       {chats.map((chat) => (
         <div key={chat.id} className="flex">
-          <ChatIcon src={chat.photoURL ?? "/user.png"} size={100} />
+          <ChatIcon src={chat.photoURL ?? "/user.png"} size={60} />
           <div>{chat.text}</div>
         </div>
       ))}
