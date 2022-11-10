@@ -1,15 +1,7 @@
-import { useState, useEffect } from "react";
+import { useElapsedTime } from "../hooks/use-elapsed-time";
 
 const ElapsedTime = ({ from }: { from: Date }) => {
-  const [elapsedTime, setElapsedTime] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setElapsedTime(Date.now() - from.getTime());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [from]);
+  const elapsedTime = useElapsedTime(from);
 
   return (
     <>{`${String(Math.floor(elapsedTime / 1000 / 60 / 60)).padStart(
