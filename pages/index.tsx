@@ -268,44 +268,24 @@ const Home = () => {
             </div>
           )}
           {user ? (
-            <>
-              <ReactTooltip
-                place="right"
-                effect="solid"
-                id="userControl"
-                clickable={true}
-              >
-                <div>ログイン中：{user.displayName}</div>
-                <button
-                  onClick={() => {
-                    signOut(auth).then(() => {
-                      setUser(null);
-                    });
-                  }}
-                  className="my-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
-                >
-                  ログアウト
-                </button>
-              </ReactTooltip>
-              <form onSubmit={chatSubmit}>
-                <div className="flex items-center p-2">
-                  <button data-tip data-for="userControl" data-event="click">
-                    <ChatIcon
-                      src={user.photoURL ?? "/user.png"}
-                      className="mx-2 border-2 border-blue-300"
-                    />
-                  </button>
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    className="w-full rounded-md border-2 border-gray-200 p-1"
-                    placeholder="チャットを入力"
-                    enterKeyHint="send"
+            <form onSubmit={chatSubmit}>
+              <div className="flex items-center p-2">
+                <button data-tip data-for="userControl" data-event="click">
+                  <ChatIcon
+                    src={user.photoURL ?? "/user.png"}
+                    className="mx-2 border-2 border-blue-300"
                   />
-                </div>
-              </form>
-            </>
+                </button>
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  className="w-full rounded-md border-2 border-gray-200 p-1"
+                  placeholder="チャットを入力"
+                  enterKeyHint="send"
+                />
+              </div>
+            </form>
           ) : isAuthLoading ? (
             <div className="m-2 text-sm text-gray-400">Loading...</div>
           ) : (
@@ -354,6 +334,24 @@ const Home = () => {
           </div>
         </div>
       </div>
+      <ReactTooltip
+        place="right"
+        effect="solid"
+        id="userControl"
+        clickable={true}
+      >
+        <div>ログイン中：{user?.displayName}</div>
+        <button
+          onClick={() => {
+            signOut(auth).then(() => {
+              setUser(null);
+            });
+          }}
+          className="my-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
+        >
+          ログアウト
+        </button>
+      </ReactTooltip>
     </Layout>
   );
 };
