@@ -269,6 +269,24 @@ const Home = () => {
           )}
           {user ? (
             <form onSubmit={chatSubmit}>
+              <ReactTooltip
+                place="right"
+                effect="solid"
+                id="userControl"
+                clickable={true}
+              >
+                <div>ログイン中：{user.displayName}</div>
+                <button
+                  onClick={() => {
+                    signOut(auth).then(() => {
+                      setUser(null);
+                    });
+                  }}
+                  className="my-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
+                >
+                  ログアウト
+                </button>
+              </ReactTooltip>
               <div className="flex items-center p-2">
                 <button data-tip data-for="userControl" data-event="click">
                   <ChatIcon
@@ -276,24 +294,6 @@ const Home = () => {
                     className="mx-2 border-2 border-blue-300"
                   />
                 </button>
-                <ReactTooltip
-                  place="right"
-                  effect="solid"
-                  id="userControl"
-                  clickable={true}
-                >
-                  <div>ログイン中：{user.displayName}</div>
-                  <button
-                    onClick={() => {
-                      signOut(auth).then(() => {
-                        setUser(null);
-                      });
-                    }}
-                    className="my-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
-                  >
-                    ログアウト
-                  </button>
-                </ReactTooltip>
                 <input
                   type="text"
                   value={chatInput}
