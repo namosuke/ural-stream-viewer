@@ -33,6 +33,8 @@ import TwitterIcon from "@mui/icons-material/Twitter";
 import ElapsedTime from "../components/elapsed-time";
 import ElapsedTimeAbout from "../components/elapsed-time-about";
 import { useChats } from "../hooks/use-chats";
+import IosShareIcon from "@mui/icons-material/IosShare";
+import ReactTooltip from "react-tooltip";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/index.m3u8";
@@ -72,6 +74,8 @@ const Home = () => {
         ) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
+        // autoPictureInPictureはSafari PWAのみ対応？
+        videoRef.current?.setAttribute("autoPictureInPicture", "");
         if (videoRef.current?.canPlayType("application/vnd.apple.mpegurl")) {
           setVideoSrc(source);
         } else if (videoRef.current && Hls.isSupported()) {
@@ -161,7 +165,7 @@ const Home = () => {
         />
         <meta
           property="og:image"
-          content={`https://web.live.omugi.org/img/thumb.png?t=${Date.now()}`}
+          content="https://live.ural.ink/thumb-default.png"
         />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@barley_ural" />
@@ -177,6 +181,7 @@ const Home = () => {
               muted={isMuted}
               playsInline
               controls
+              poster="https://live.omugi.org/img/thumb.png"
               className="mx-auto max-h-[50vh] max-w-full"
             ></video>
             {isMuted && (
@@ -199,8 +204,39 @@ const Home = () => {
         <div className="mx-auto max-w-3xl">
           {publish?.status === "liveStarted" ? (
             <div className="flex items-center justify-between">
-              <div className="m-2 text-sm text-gray-400">
+              <div className="m-2 flex items-center text-sm text-gray-400">
                 <ElapsedTime from={publish.createdAt} />
+                <button
+                  className="mx-2 text-gray-700"
+                  onClick={() => {
+                    fetch("https://live.omugi.org/img/thumb.png").then(
+                      async (res) => {
+                        if (res.ok) {
+                          console.log(res.headers.get("Content-Type"));
+                          const file = new File(
+                            [await res.blob()],
+                            "thumb.png",
+                            {
+                              type:
+                                res.headers.get("Content-Type") ?? "image/png",
+                            }
+                          );
+                          if (
+                            navigator.canShare &&
+                            navigator.canShare({ files: [file] })
+                          ) {
+                            navigator.share({
+                              files: [file],
+                              text: `#ウラルのゲームライブ配信中\n${window.location.href}`,
+                            });
+                          }
+                        }
+                      }
+                    );
+                  }}
+                >
+                  <IosShareIcon />
+                </button>
               </div>
               <FormControlLabel
                 control={
@@ -211,7 +247,10 @@ const Home = () => {
                   />
                 }
                 label={
-                  <PictureInPictureIcon titleAccess="ピクチャ・イン・ピクチャを有効にする" />
+                  <PictureInPictureIcon
+                    className="text-gray-700"
+                    titleAccess="ピクチャ・イン・ピクチャを有効にする"
+                  />
                 }
               />
             </div>
@@ -229,19 +268,7 @@ const Home = () => {
             </div>
           )}
           {user ? (
-            <div>
-              <button
-                onClick={() => {
-                  signOut(auth).then(() => {
-                    setUser(null);
-                  });
-                }}
-                className="m-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
-              >
-                ログアウト
-              </button>
-              <span>ユーザー名：{user.displayName}</span>
-            </div>
+            <div></div>
           ) : (
             <button
               onClick={() => {
@@ -271,7 +298,31 @@ const Home = () => {
           )}
           {user && (
             <form onSubmit={chatSubmit}>
-              <div className="p-2">
+              <div className="flex items-center p-2">
+                <button data-tip data-for="userControl" data-event="click">
+                  <ChatIcon
+                    src={user.photoURL ?? "/user.png"}
+                    className="mx-2 border-2 border-blue-300"
+                  />
+                </button>
+                <ReactTooltip
+                  place="right"
+                  effect="solid"
+                  id="userControl"
+                  clickable={true}
+                >
+                  <div>ログイン中：{user.displayName}</div>
+                  <button
+                    onClick={() => {
+                      signOut(auth).then(() => {
+                        setUser(null);
+                      });
+                    }}
+                    className="my-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
+                  >
+                    ログアウト
+                  </button>
+                </ReactTooltip>
                 <input
                   type="text"
                   value={chatInput}
