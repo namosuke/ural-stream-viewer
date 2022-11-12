@@ -45,6 +45,7 @@ const Home = () => {
   const app = useMemo(() => getApp(), []);
   const provider = new TwitterAuthProvider();
   const auth = useMemo(() => getAuth(app), [app]);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const db = useMemo(() => getFirestore(app), [app]);
 
@@ -92,9 +93,8 @@ const Home = () => {
 
   useEffect(() => {
     auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        setUser(user);
-      }
+      if (user) setUser(user);
+      setIsAuthLoading(false);
     });
   }, [auth]);
 
@@ -268,35 +268,6 @@ const Home = () => {
             </div>
           )}
           {user ? (
-            <div></div>
-          ) : (
-            <button
-              onClick={() => {
-                signInWithPopup(auth, provider).then((result) => {
-                  const credintial =
-                    result && TwitterAuthProvider.credentialFromResult(result);
-                  const token = credintial?.accessToken;
-                  const secret = credintial?.secret;
-                  const user = result?.user;
-                  if (token && secret && user) {
-                    setDoc(doc(db, "users", user.uid), {
-                      name: user.displayName,
-                      photoURL: user.photoURL,
-                    });
-                    setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
-                      token,
-                      secret,
-                    });
-                  }
-                });
-              }}
-              className="m-2 flex items-center rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
-            >
-              <TwitterIcon className="mr-2" />
-              <div>Twitterログインでチャットに参加</div>
-            </button>
-          )}
-          {user && (
             <form onSubmit={chatSubmit}>
               <div className="flex items-center p-2">
                 <button data-tip data-for="userControl" data-event="click">
@@ -333,6 +304,35 @@ const Home = () => {
                 />
               </div>
             </form>
+          ) : isAuthLoading ? (
+            <div className="m-2 text-sm text-gray-400">Loading...</div>
+          ) : (
+            <button
+              onClick={() => {
+                setIsAuthLoading(true);
+                signInWithPopup(auth, provider).then((result) => {
+                  const credintial =
+                    result && TwitterAuthProvider.credentialFromResult(result);
+                  const token = credintial?.accessToken;
+                  const secret = credintial?.secret;
+                  const user = result?.user;
+                  if (token && secret && user) {
+                    setDoc(doc(db, "users", user.uid), {
+                      name: user.displayName,
+                      photoURL: user.photoURL,
+                    });
+                    setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
+                      token,
+                      secret,
+                    });
+                  }
+                });
+              }}
+              className="m-2 flex items-center rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
+            >
+              <TwitterIcon className="mr-2" />
+              <div>Twitterログインでチャットに参加</div>
+            </button>
           )}
           <div>
             {chats.map((chat) => (
