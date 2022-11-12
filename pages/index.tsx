@@ -7,7 +7,6 @@ import Hls from "hls.js";
 import { getApp } from "firebase/app";
 import {
   getAuth,
-  signOut,
   TwitterAuthProvider,
   User,
   signInWithPopup,
@@ -34,7 +33,7 @@ import ElapsedTime from "../components/elapsed-time";
 import ElapsedTimeAbout from "../components/elapsed-time-about";
 import { useChats } from "../hooks/use-chats";
 import IosShareIcon from "@mui/icons-material/IosShare";
-import ReactTooltip from "react-tooltip";
+import UserControl from "../components/user-control";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/index.m3u8";
@@ -98,8 +97,7 @@ const Home = () => {
     });
   }, [auth]);
 
-  const chatSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const chatSubmit = () => {
     if (user !== null && chatInput !== "") {
       addDoc(collection(db, "chats"), {
         uid: user.uid,
@@ -205,7 +203,6 @@ const Home = () => {
           {publish?.status === "liveStarted" ? (
             <div className="flex items-center justify-between">
               <div className="m-2 flex items-center text-sm text-gray-400">
-                <ElapsedTime from={publish.createdAt} />
                 <button
                   className="mx-2 text-gray-700"
                   onClick={() => {
@@ -237,6 +234,7 @@ const Home = () => {
                 >
                   <IosShareIcon />
                 </button>
+                <ElapsedTime from={publish.createdAt} />
               </div>
               <FormControlLabel
                 control={
@@ -268,24 +266,29 @@ const Home = () => {
             </div>
           )}
           {user ? (
-            <form onSubmit={chatSubmit}>
-              <div className="flex items-center p-2">
-                <button data-tip data-for="userControl" data-event="click">
-                  <ChatIcon
-                    src={user.photoURL ?? "/user.png"}
-                    className="mx-2 border-2 border-blue-300"
-                  />
-                </button>
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  className="w-full rounded-md border-2 border-gray-200 p-1"
-                  placeholder="チャットを入力"
-                  enterKeyHint="send"
-                />
-              </div>
-            </form>
+            <div className="flex items-center p-2">
+              <UserControl
+                user={user}
+                auth={auth}
+                onSignOut={() => {
+                  setUser(null);
+                }}
+              />
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="w-full rounded-md border-2 border-gray-200 p-1"
+                placeholder="チャットを入力"
+                enterKeyHint="send"
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    chatSubmit();
+                  }
+                }}
+              />
+            </div>
           ) : isAuthLoading ? (
             <div className="m-2 text-sm text-gray-400">Loading...</div>
           ) : (
@@ -334,24 +337,6 @@ const Home = () => {
           </div>
         </div>
       </div>
-      <ReactTooltip
-        place="right"
-        effect="solid"
-        id="userControl"
-        clickable={true}
-      >
-        <div>ログイン中：{user?.displayName}</div>
-        <button
-          onClick={() => {
-            signOut(auth).then(() => {
-              setUser(null);
-            });
-          }}
-          className="my-2 rounded bg-red-500 py-1 px-2 font-bold text-white hover:bg-red-600"
-        >
-          ログアウト
-        </button>
-      </ReactTooltip>
     </Layout>
   );
 };
