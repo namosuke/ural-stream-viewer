@@ -307,10 +307,11 @@ const Home = () => {
                   const token = credintial?.accessToken;
                   const secret = credintial?.secret;
                   const user = result?.user;
+                  console.log({ token, secret, user });
                   if (token && secret && user) {
                     setDoc(doc(db, "users", user.uid), {
                       name: user.displayName,
-                      photoURL: user.photoURL,
+                      photoURL: user.photoURL?.replace("normal", "200x200"),
                     });
                     setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
                       token,
