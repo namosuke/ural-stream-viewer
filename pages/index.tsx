@@ -206,18 +206,24 @@ const Home = () => {
                 <button
                   className="mx-2 text-gray-700"
                   onClick={() => {
-                    fetch("https://live.omugi.org/img/thumb.png").then(
-                      async (res) => {
-                        if (res.ok) {
-                          console.log(res.headers.get("Content-Type"));
-                          const file = new File(
-                            [await res.blob()],
-                            "thumb.png",
-                            {
-                              type:
-                                res.headers.get("Content-Type") ?? "image/png",
-                            }
-                          );
+                    if (videoRef.current) {
+                      const canvas = document.createElement("canvas");
+                      canvas.width = videoRef.current.videoWidth;
+                      canvas.height = videoRef.current.videoHeight;
+                      canvas
+                        .getContext("2d")
+                        ?.drawImage(
+                          videoRef.current,
+                          0,
+                          0,
+                          canvas.width,
+                          canvas.height
+                        );
+                      canvas.toBlob((blob) => {
+                        if (blob) {
+                          const file = new File([blob], "screenshot.png", {
+                            type: "image/png",
+                          });
                           if (
                             navigator.canShare &&
                             navigator.canShare({ files: [file] })
@@ -228,8 +234,8 @@ const Home = () => {
                             });
                           }
                         }
-                      }
-                    );
+                      });
+                    }
                   }}
                 >
                   <IosShareIcon />
