@@ -129,7 +129,7 @@ const Home = () => {
           ?.webkitPresentationMode === "picture-in-picture"
       );
     });
-  }, [videoRef]);
+  }, [videoSrc]);
 
   const pipClick = async () => {
     if (!videoRef.current) return;
