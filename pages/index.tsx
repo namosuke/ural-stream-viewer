@@ -129,7 +129,8 @@ const Home = () => {
           ?.webkitPresentationMode === "picture-in-picture"
       );
     });
-  }, []);
+  }, [videoRef]);
+
   const pipClick = async () => {
     if (!videoRef.current) return;
     try {
@@ -192,6 +193,7 @@ const Home = () => {
               controls
               poster="https://live.omugi.org/img/thumb.png"
               className="mx-auto max-h-[50vh] max-w-full"
+              crossOrigin="anonymous"
             ></video>
             {isMuted && (
               <button
