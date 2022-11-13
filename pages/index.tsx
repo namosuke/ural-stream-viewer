@@ -34,6 +34,7 @@ import ElapsedTimeAbout from "../components/elapsed-time-about";
 import { useChats } from "../hooks/use-chats";
 import IosShareIcon from "@mui/icons-material/IosShare";
 import UserControl from "../components/user-control";
+import { getPhotoURL, getDisplayName } from "../utils/firebase/user";
 
 const Home = () => {
   const source = "https://live.omugi.org/live/index.m3u8";
@@ -103,8 +104,8 @@ const Home = () => {
         uid: user.uid,
         createdAt: serverTimestamp(),
         text: chatInput,
-        name: user.providerData[0].displayName,
-        photoURL: user.providerData[0].photoURL?.replace("normal", "200x200"),
+        name: getDisplayName(user, "twitter.com"),
+        photoURL: getPhotoURL(user, "twitter.com", 200),
       });
       setChatInput("");
     }
@@ -309,11 +310,8 @@ const Home = () => {
                   const user = result?.user;
                   if (token && secret && user) {
                     setDoc(doc(db, "users", user.uid), {
-                      name: user.providerData[0].displayName,
-                      photoURL: user.providerData[0].photoURL?.replace(
-                        "normal",
-                        "200x200"
-                      ),
+                      name: getDisplayName(user, "twitter.com"),
+                      photoURL: getPhotoURL(user, "twitter.com", 200),
                     });
                     setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
                       token,

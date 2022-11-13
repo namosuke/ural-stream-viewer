@@ -1,6 +1,7 @@
 import ChatIcon from "./chat-icon";
 import ReactTooltip from "react-tooltip";
 import { signOut, User, Auth } from "firebase/auth";
+import { getDisplayName, getPhotoURL } from "../utils/firebase/user";
 
 const UserControl = ({
   user,
@@ -15,7 +16,7 @@ const UserControl = ({
     <div>
       <button data-tip data-for="userControl" data-event="click">
         <ChatIcon
-          src={user.photoURL ?? "/user.png"}
+          src={getPhotoURL(user, "twitter.com", 200) ?? "/user.png"}
           className="mx-2 border-2 border-blue-300"
         />
       </button>
@@ -26,7 +27,7 @@ const UserControl = ({
         clickable={true}
         globalEventOff="click"
       >
-        <div>ログイン中：{user?.displayName}</div>
+        <div>ログイン中：{getDisplayName(user, "twitter.com")}</div>
         <button
           onClick={() => {
             signOut(auth).then(onSignOut);
