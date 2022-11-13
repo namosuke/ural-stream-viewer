@@ -36,6 +36,10 @@ import IosShareIcon from "@mui/icons-material/IosShare";
 import UserControl from "../components/user-control";
 import { getPhotoURL, getDisplayName } from "../utils/firebase/user";
 
+interface HTMLVideoElementWithPip extends HTMLVideoElement {
+  webkitPresentationMode: "inline" | "picture-in-picture" | "fullscreen";
+}
+
 const Home = () => {
   const source = "https://live.omugi.org/live/index.m3u8";
   const [videoSrc, setVideoSrc] = useState<string | undefined>();
@@ -118,6 +122,12 @@ const Home = () => {
     });
     videoRef.current?.addEventListener("leavepictureinpicture", () => {
       setIsPipActive(false);
+    });
+    videoRef.current?.addEventListener("webkitpresentationmodechanged", () => {
+      setIsPipActive(
+        (videoRef.current as HTMLVideoElementWithPip)
+          ?.webkitPresentationMode === "picture-in-picture"
+      );
     });
   }, []);
   const pipClick = async () => {
@@ -254,7 +264,7 @@ const Home = () => {
                 label={
                   <PictureInPictureIcon
                     className="text-gray-700"
-                    titleAccess="ピクチャ・イン・ピクチャを有効にする"
+                    titleAccess="ピクチャー・イン・ピクチャーを有効にする"
                   />
                 }
               />
