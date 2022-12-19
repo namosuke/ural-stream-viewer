@@ -197,7 +197,7 @@ const Home = () => {
             ></video>
             {isMuted && (
               <button
-                className="absolute right-0 bottom-0 left-0 top-0"
+                className="absolute left-0 top-0"
                 onClick={() => {
                   setIsMuted(false);
                 }}
@@ -243,7 +243,7 @@ const Home = () => {
                           ) {
                             navigator.share({
                               files: [file],
-                              text: `#ウラルのゲームライブ配信中\n${window.location.href}`,
+                              text: `#ural_live\n${window.location.href}`,
                             });
                           }
                         }
@@ -335,7 +335,7 @@ const Home = () => {
               className="m-2 flex items-center rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
             >
               <TwitterIcon className="mr-2" />
-              <div>Twitterログインでチャットに参加</div>
+              <div>Twitterログインで参加</div>
             </button>
           )}
           <div>
