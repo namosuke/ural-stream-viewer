@@ -197,14 +197,14 @@ const Home = () => {
             ></video>
             {isMuted && (
               <button
-                className="absolute left-0 top-0"
+                className="absolute left-0 top-0 right-0 bottom-0"
                 onClick={() => {
                   setIsMuted(false);
                 }}
               >
-                <div className="m-6 inline-block rounded-lg bg-gray-800 py-4 px-6 text-lg text-white">
+                <div className="absolute left-0 top-0 m-6 inline-block rounded-lg bg-gray-800 py-3 px-4 text-base text-white">
                   <div className="flex items-center">
-                    <VolumeOffRoundedIcon className="mr-2 text-3xl" />
+                    <VolumeOffRoundedIcon className="mr-2" />
                     ミュート解除
                   </div>
                 </div>

@@ -17,6 +17,17 @@ const ChatStream = () => {
   useEffect(() => {
     setChatToLane((prev) => {
       const newChatToLane: ChatToLane = {};
+      const lanes = new Array(10).fill(0);
+      // 更新前レーン集計
+      Object.entries(prev).forEach(([chatId, lane]) => {
+        const chat = chats.find((chat) => chat.id === chatId);
+        if (
+          chat?.createdAt &&
+          Date.now() - chat.createdAt.getTime() < displaySeconds * 1000
+        ) {
+          lanes[lane] += 1;
+        }
+      });
       chats
         .filter(
           (chat) =>
@@ -24,10 +35,13 @@ const ChatStream = () => {
             Date.now() - chat.createdAt.getTime() < displaySeconds * 1000
         )
         .forEach((chat) => {
-          if (prev[chat.id]) {
+          if (prev[chat.id] !== undefined) {
             newChatToLane[chat.id] = prev[chat.id];
           } else {
-            newChatToLane[chat.id] = Math.floor(Math.random() * 10);
+            // レーンが空いているものを優先して割り当てる
+            const lane = lanes.indexOf(Math.min(...lanes));
+            lanes[lane] += 1;
+            newChatToLane[chat.id] = lane;
           }
         });
       return newChatToLane;
@@ -60,7 +74,7 @@ const ChatStream = () => {
             key={chat.id}
             className="absolute flex items-center"
             style={{
-              top: chatToLane[chat.id] * 70,
+              top: (chatToLane[chat.id] ?? -1) * 70,
               // 10秒以内のコメントがすべて右端から出るが仕様
               transform: `translateX(1280px)`,
               animationDuration: `${displaySeconds}s`,
