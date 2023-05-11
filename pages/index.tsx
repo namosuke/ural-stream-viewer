@@ -10,6 +10,7 @@ import {
   TwitterAuthProvider,
   User,
   signInWithPopup,
+  signInAnonymously,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -96,6 +97,7 @@ const Home = () => {
   }, [videoRef, publish]);
 
   useEffect(() => {
+    signInAnonymously(auth);
     auth.onAuthStateChanged(async (user) => {
       if (user) setUser(user);
       setIsAuthLoading(false);
@@ -314,28 +316,11 @@ const Home = () => {
             <button
               onClick={() => {
                 setIsAuthLoading(true);
-                signInWithPopup(auth, provider).then((result) => {
-                  const credintial =
-                    result && TwitterAuthProvider.credentialFromResult(result);
-                  const token = credintial?.accessToken;
-                  const secret = credintial?.secret;
-                  const user = result?.user;
-                  if (token && secret && user) {
-                    setDoc(doc(db, "users", user.uid), {
-                      name: getDisplayName(user, "twitter.com"),
-                      photoURL: getPhotoURL(user, "twitter.com", 200),
-                    });
-                    setDoc(doc(db, "users", user.uid, "privates", "twitter"), {
-                      token,
-                      secret,
-                    });
-                  }
-                });
+                signInAnonymously(auth);
               }}
               className="m-2 flex items-center rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-600"
             >
-              <TwitterIcon className="mr-2" />
-              <div>Twitterログインで参加</div>
+              <div>チャットに参加する</div>
             </button>
           )}
           <div>
