@@ -27,6 +27,7 @@ import {
 import ChatIcon from "../components/chat-icon";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
+import EditIcon from "@mui/icons-material/Edit";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TwitterIcon from "@mui/icons-material/Twitter";
@@ -52,6 +53,8 @@ const Home = () => {
   const auth = useMemo(() => getAuth(app), [app]);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [displayName, setDisplayName] = useState<string>("名無し");
+  const [isOpenNameEdit, setIsOpenNameEdit] = useState<boolean>(false);
   const db = useMemo(() => getFirestore(app), [app]);
 
   const [chatInput, setChatInput] = useState("");
@@ -110,8 +113,8 @@ const Home = () => {
         uid: user.uid,
         createdAt: serverTimestamp(),
         text: chatInput,
-        name: getDisplayName(user, "twitter.com"),
-        photoURL: getPhotoURL(user, "twitter.com", 200),
+        name: displayName,
+        photoURL: null,
       });
       setChatInput("");
     }
@@ -287,7 +290,7 @@ const Home = () => {
             </div>
           )}
           {user ? (
-            <div className="flex items-center p-2">
+            <div className="flex items-start p-2">
               <UserControl
                 user={user}
                 auth={auth}
@@ -295,20 +298,48 @@ const Home = () => {
                   setUser(null);
                 }}
               />
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                className="w-full rounded-md border-2 border-gray-200 p-1"
-                placeholder="チャットを入力"
-                enterKeyHint="send"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    chatSubmit();
-                  }
-                }}
-              />
+              <div className="w-full">
+                {isOpenNameEdit ? (
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full rounded-md border-2 border-gray-200 p-1"
+                    placeholder="名前"
+                    enterKeyHint="done"
+                    autoFocus
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        setIsOpenNameEdit(false);
+                      }
+                    }}
+                  />
+                ) : (
+                  <>
+                    <span className="font-bold">{displayName}</span>
+                    <EditIcon
+                      className="ml-2 cursor-pointer text-gray-700"
+                      titleAccess="名前を編集する"
+                      onClick={() => setIsOpenNameEdit(true)}
+                    />
+                  </>
+                )}
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  className="mt-2 w-full rounded-md border-2 border-gray-200 p-1"
+                  placeholder="チャットを入力"
+                  enterKeyHint="send"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      chatSubmit();
+                    }
+                  }}
+                />
+              </div>
             </div>
           ) : isAuthLoading ? (
             <div className="m-2 text-sm text-gray-400">Loading...</div>
@@ -327,14 +358,14 @@ const Home = () => {
             {chats.map((chat) => (
               <div key={chat.id} className="m-4 flex border-b-2 pb-4">
                 <ChatIcon src={chat.photoURL ?? "/user.png"} />
-                <div className="mx-2 flex-1">
+                <div className="mx-2 min-w-0 flex-1">
                   <div>
                     <span className="font-bold">{chat.name}</span>{" "}
                     <span className="text-sm text-gray-400">
                       {chat.createdAt?.toLocaleString()}
                     </span>
                   </div>
-                  <div>{chat.text}</div>
+                  <div className="break-words">{chat.text}</div>
                 </div>
               </div>
             ))}
