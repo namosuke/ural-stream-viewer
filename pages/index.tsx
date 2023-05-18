@@ -1,21 +1,11 @@
 import Head from "next/head";
-import Image from "next/image";
-import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import Layout from "../components/layout";
 import Hls from "hls.js";
 import { getApp } from "firebase/app";
-import {
-  getAuth,
-  TwitterAuthProvider,
-  User,
-  signInWithPopup,
-  signInAnonymously,
-} from "firebase/auth";
+import { getAuth, User, signInAnonymously } from "firebase/auth";
 import {
   getFirestore,
-  doc,
-  setDoc,
   addDoc,
   collection,
   serverTimestamp,
@@ -30,13 +20,11 @@ import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
 import EditIcon from "@mui/icons-material/Edit";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import TwitterIcon from "@mui/icons-material/Twitter";
 import ElapsedTime from "../components/elapsed-time";
 import ElapsedTimeAbout from "../components/elapsed-time-about";
 import { useChats } from "../hooks/use-chats";
 import IosShareIcon from "@mui/icons-material/IosShare";
 import UserControl from "../components/user-control";
-import { getPhotoURL, getDisplayName } from "../utils/firebase/user";
 
 interface HTMLVideoElementWithPip extends HTMLVideoElement {
   webkitPresentationMode: "inline" | "picture-in-picture" | "fullscreen";
@@ -49,11 +37,10 @@ const Home = () => {
   const hls = useRef<Hls>();
 
   const app = useMemo(() => getApp(), []);
-  const provider = new TwitterAuthProvider();
   const auth = useMemo(() => getAuth(app), [app]);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [displayName, setDisplayName] = useState<string>("名無し");
+  const [displayName, setDisplayName] = useState<string>();
   const [isOpenNameEdit, setIsOpenNameEdit] = useState<boolean>(false);
   const db = useMemo(() => getFirestore(app), [app]);
 
@@ -72,6 +59,7 @@ const Home = () => {
   };
   const [publish, setPublish] = useState<Publish>();
 
+  /** 動画配信情報制御 */
   useEffect(() => {
     (async () => {
       if (publish?.status === "liveStarted") {
@@ -99,6 +87,7 @@ const Home = () => {
     })();
   }, [videoRef, publish]);
 
+  /** 自動ログイン */
   useEffect(() => {
     signInAnonymously(auth);
     auth.onAuthStateChanged(async (user) => {
@@ -113,13 +102,14 @@ const Home = () => {
         uid: user.uid,
         createdAt: serverTimestamp(),
         text: chatInput,
-        name: displayName,
+        name: displayName ?? "名無し",
         photoURL: null,
       });
       setChatInput("");
     }
   };
 
+  /** PiP */
   useEffect(() => {
     setIsPipSupported(document.pictureInPictureEnabled);
     videoRef.current?.addEventListener("enterpictureinpicture", () => {
@@ -151,6 +141,7 @@ const Home = () => {
     }
   };
 
+  /** チャット更新 */
   useEffect(() => {
     const q = query(
       collection(db, "publishes"),
@@ -166,6 +157,12 @@ const Home = () => {
       );
     });
   }, [db]);
+
+  /** localStorage */
+  useEffect(() => {
+    const displayName = localStorage.getItem("displayName");
+    if (displayName) setDisplayName(displayName);
+  }, []);
 
   return (
     <Layout>
@@ -215,6 +212,25 @@ const Home = () => {
                 </div>
               </button>
             )}
+          </div>
+        )}
+        {publish?.status === "liveEnded" && (
+          <div
+            className="mx-auto max-h-[50vh] max-w-full "
+            style={{
+              aspectRatio: "16/9",
+            }}
+          >
+            <iframe
+              className="h-full w-full"
+              width="560"
+              height="315"
+              src="https://www.youtube.com/embed/wEQ-EMrsYUM"
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
           </div>
         )}
         <div className="mx-auto max-w-3xl">
@@ -296,6 +312,8 @@ const Home = () => {
                 auth={auth}
                 onSignOut={() => {
                   setUser(null);
+                  setDisplayName(undefined);
+                  localStorage.clear();
                 }}
               />
               <div className="w-full">
@@ -303,8 +321,11 @@ const Home = () => {
                   <input
                     type="text"
                     value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full rounded-md border-2 border-gray-200 p-1"
+                    onChange={(e) => {
+                      setDisplayName(e.target.value);
+                      localStorage.setItem("displayName", e.target.value);
+                    }}
+                    className="mb-2 w-full rounded-md border-2 border-gray-200 p-1"
                     placeholder="名前"
                     enterKeyHint="done"
                     autoFocus
@@ -314,22 +335,31 @@ const Home = () => {
                         setIsOpenNameEdit(false);
                       }
                     }}
+                    onBlur={() => setIsOpenNameEdit(false)}
                   />
                 ) : (
                   <>
-                    <span className="font-bold">{displayName}</span>
-                    <EditIcon
-                      className="ml-2 cursor-pointer text-gray-700"
-                      titleAccess="名前を編集する"
+                    <span className="font-bold">{displayName ?? "名無し"}</span>
+                    <button
+                      className="ml-2"
+                      title="名前を編集する"
                       onClick={() => setIsOpenNameEdit(true)}
-                    />
+                    >
+                      <EditIcon
+                        className="relative text-gray-500"
+                        style={{
+                          fontSize: "16px",
+                          top: "-2px",
+                        }}
+                      />
+                    </button>
                   </>
                 )}
                 <input
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="mt-2 w-full rounded-md border-2 border-gray-200 p-1"
+                  className="w-full rounded-md border-2 border-gray-200 p-1"
                   placeholder="チャットを入力"
                   enterKeyHint="send"
                   onKeyPress={(e) => {
