@@ -292,6 +292,9 @@ const Home = () => {
                   />
                 }
                 labelPlacement="start"
+                style={{
+                  marginRight: "0",
+                }}
               />
             </div>
           ) : (
