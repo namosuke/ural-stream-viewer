@@ -24,7 +24,6 @@ import ElapsedTime from "../components/elapsed-time";
 import ElapsedTimeAbout from "../components/elapsed-time-about";
 import { useChats } from "../hooks/use-chats";
 import IosShareIcon from "@mui/icons-material/IosShare";
-import UserControl from "../components/user-control";
 
 interface HTMLVideoElementWithPip extends HTMLVideoElement {
   webkitPresentationMode: "inline" | "picture-in-picture" | "fullscreen";
@@ -58,6 +57,8 @@ const Home = () => {
     status: "liveStarted" | "liveEnded";
   };
   const [publish, setPublish] = useState<Publish>();
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [userImage, setUserImage] = useState<string | undefined>();
 
   /** 動画配信情報制御 */
   useEffect(() => {
@@ -185,7 +186,7 @@ const Home = () => {
       <div className="h-full min-h-screen w-full">
         <div className="m-2 text-center">ウラルのゲームライブ</div>
         {publish?.status === "liveStarted" && (
-          <div className="sticky top-0 z-10 bg-black">
+          <div className="sticky top-0 z-20 bg-black">
             <video
               src={videoSrc}
               ref={videoRef}
@@ -204,7 +205,7 @@ const Home = () => {
                   setIsMuted(false);
                 }}
               >
-                <div className="absolute left-0 top-0 m-6 inline-block rounded-lg bg-gray-800 py-3 px-4 text-base text-white">
+                <div className="absolute left-0 top-0 m-6 inline-block rounded-lg bg-slate-800 py-3 px-4 text-base text-white">
                   <div className="flex items-center">
                     <VolumeOffRoundedIcon className="mr-2" />
                     ミュート解除
@@ -236,9 +237,9 @@ const Home = () => {
         <div className="mx-auto max-w-3xl">
           {publish?.status === "liveStarted" ? (
             <div className="flex items-center justify-between">
-              <div className="m-2 flex items-center text-sm text-gray-400">
+              <div className="m-2 flex items-center text-sm text-slate-400">
                 <button
-                  className="mx-2 text-gray-700"
+                  className="mx-2 text-slate-700"
                   onClick={() => {
                     if (videoRef.current) {
                       const canvas = document.createElement("canvas");
@@ -286,14 +287,15 @@ const Home = () => {
                 }
                 label={
                   <PictureInPictureIcon
-                    className="text-gray-700"
+                    className="text-slate-700"
                     titleAccess="ピクチャー・イン・ピクチャーを有効にする"
                   />
                 }
+                labelPlacement="start"
               />
             </div>
           ) : (
-            <div className="m-2 text-sm text-gray-400">
+            <div className="m-2 text-sm text-slate-400">
               {publish?.status === "liveEnded" ? (
                 <>
                   ライブは
@@ -307,13 +309,33 @@ const Home = () => {
           )}
           {user ? (
             <div className="flex items-start p-2">
-              <UserControl
-                user={user}
-                auth={auth}
-                onSignOut={() => {
-                  setUser(null);
-                  setDisplayName(undefined);
-                  localStorage.clear();
+              <button
+                onClick={() => {
+                  imageInputRef.current?.click();
+                }}
+              >
+                <ChatIcon
+                  src={userImage ?? "/user.png"}
+                  className="mx-2 border-2 border-slate-300"
+                  addable
+                />
+              </button>
+              <input
+                accept="image/*"
+                type="file"
+                hidden
+                ref={imageInputRef}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      if (reader.result) {
+                        setUserImage(reader.result.toString());
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }
                 }}
               />
               <div className="w-full">
@@ -325,7 +347,7 @@ const Home = () => {
                       setDisplayName(e.target.value);
                       localStorage.setItem("displayName", e.target.value);
                     }}
-                    className="mb-2 w-full rounded-md border-2 border-gray-200 p-1"
+                    className="mb-2 w-full rounded-md border-2 border-slate-200 p-1"
                     placeholder="名前"
                     enterKeyHint="done"
                     autoFocus
@@ -346,7 +368,7 @@ const Home = () => {
                       onClick={() => setIsOpenNameEdit(true)}
                     >
                       <EditIcon
-                        className="relative text-gray-500"
+                        className="relative text-slate-500"
                         style={{
                           fontSize: "16px",
                           top: "-2px",
@@ -359,7 +381,7 @@ const Home = () => {
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="w-full rounded-md border-2 border-gray-200 p-1"
+                  className="w-full rounded-md border-2 border-slate-200 p-1"
                   placeholder="チャットを入力"
                   enterKeyHint="send"
                   onKeyPress={(e) => {
@@ -372,7 +394,7 @@ const Home = () => {
               </div>
             </div>
           ) : isAuthLoading ? (
-            <div className="m-2 text-sm text-gray-400">Loading...</div>
+            <div className="m-2 text-sm text-slate-400">Loading...</div>
           ) : (
             <button
               onClick={() => {
@@ -391,7 +413,7 @@ const Home = () => {
                 <div className="mx-2 min-w-0 flex-1">
                   <div>
                     <span className="font-bold">{chat.name}</span>{" "}
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-slate-400">
                       {chat.createdAt?.toLocaleString()}
                     </span>
                   </div>
