@@ -335,6 +335,19 @@ const Home = () => {
                     reader.onload = () => {
                       if (reader.result) {
                         setUserImage(reader.result.toString());
+                        fetch("/api/icon", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            icon: reader.result.toString(),
+                          }),
+                        }).then((res) => {
+                          res.json().then((data) => {
+                            console.log(data);
+                          });
+                        });
                       }
                     };
                     reader.readAsDataURL(file);
