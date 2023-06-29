@@ -14,7 +14,6 @@ export type Chat = {
   createdAt?: Date;
   text?: string;
   name?: string;
-  photoURL?: string;
 };
 
 export const useChats = (db: Firestore) => {
@@ -34,7 +33,6 @@ export const useChats = (db: Firestore) => {
           createdAt: doc.data().createdAt?.toDate(),
           text: doc.data().text,
           name: doc.data().name,
-          photoURL: doc.data().photoURL,
         }))
       );
     });

@@ -14,6 +14,7 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import ChatIcon from "../components/chat-icon";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
@@ -24,6 +25,7 @@ import ElapsedTime from "../components/elapsed-time";
 import ElapsedTimeAbout from "../components/elapsed-time-about";
 import { useChats } from "../hooks/use-chats";
 import IosShareIcon from "@mui/icons-material/IosShare";
+import { useChatUserIcons } from "../hooks/use-chat-user-icons";
 
 interface HTMLVideoElementWithPip extends HTMLVideoElement {
   webkitPresentationMode: "inline" | "picture-in-picture" | "fullscreen";
@@ -46,6 +48,7 @@ const Home = () => {
   const [chatInput, setChatInput] = useState("");
 
   const chats = useChats(db);
+  const [chatUserIcons, setChatUserIcons] = useChatUserIcons(chats);
 
   const [isMuted, setIsMuted] = useState(true);
 
@@ -60,7 +63,7 @@ const Home = () => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [userImage, setUserImage] = useState<string | undefined>();
 
-  /** 動画配信情報制御 */
+  /* 動画配信情報制御 */
   useEffect(() => {
     (async () => {
       if (publish?.status === "liveStarted") {
@@ -88,7 +91,7 @@ const Home = () => {
     })();
   }, [videoRef, publish]);
 
-  /** 自動ログイン */
+  /* 自動ログイン */
   useEffect(() => {
     signInAnonymously(auth);
     auth.onAuthStateChanged(async (user) => {
@@ -110,7 +113,7 @@ const Home = () => {
     }
   };
 
-  /** PiP */
+  /* PiP */
   useEffect(() => {
     setIsPipSupported(document.pictureInPictureEnabled);
     videoRef.current?.addEventListener("enterpictureinpicture", () => {
@@ -142,7 +145,7 @@ const Home = () => {
     }
   };
 
-  /** チャット更新 */
+  /* 配信ステータス更新 */
   useEffect(() => {
     const q = query(
       collection(db, "publishes"),
@@ -159,11 +162,15 @@ const Home = () => {
     });
   }, [db]);
 
-  /** localStorage */
+  /* localStorage */
   useEffect(() => {
     const displayName = localStorage.getItem("displayName");
     if (displayName) setDisplayName(displayName);
   }, []);
+
+  /* 画像リサイズ */
+  const maxWidth = 250;
+  const maxHeight = 250;
 
   return (
     <Layout>
@@ -329,29 +336,66 @@ const Home = () => {
                 hidden
                 ref={imageInputRef}
                 onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    const file = e.target.files[0];
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      if (reader.result) {
-                        setUserImage(reader.result.toString());
-                        fetch("/api/icon", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({
-                            icon: reader.result.toString(),
-                          }),
-                        }).then((res) => {
-                          res.json().then((data) => {
-                            console.log(data);
-                          });
+                  if (!(e.target.files && e.target.files[0])) return;
+                  const file = e.target.files[0];
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const img = new Image();
+                    img.onload = () => {
+                      const canvas = document.createElement("canvas");
+                      canvas.width = maxWidth;
+                      canvas.height = maxHeight;
+                      const ctx = canvas.getContext("2d");
+                      if (ctx === null) return;
+                      ctx.fillStyle = "white";
+                      ctx.fillRect(0, 0, canvas.width, canvas.height);
+                      const aspectRatio = img.width / img.height;
+                      const sx =
+                        aspectRatio > 1 ? (img.width - img.height) / 2 : 0;
+                      const sy =
+                        aspectRatio <= 1 ? (img.height - img.width) / 2 : 0;
+                      const sWidth = aspectRatio > 1 ? img.height : img.width;
+                      const sHeight = aspectRatio <= 1 ? img.width : img.height;
+                      ctx.drawImage(
+                        img,
+                        sx,
+                        sy,
+                        sWidth,
+                        sHeight,
+                        0,
+                        0,
+                        canvas.width,
+                        canvas.height
+                      );
+                      ctx.canvas.toBlob(async (blob) => {
+                        if (blob === null) return;
+                        const storage = getStorage();
+                        const storageRef = ref(storage, `/icons/${user.uid}`);
+                        await uploadBytes(storageRef, blob).catch(() => {
+                          alert("画像のアップロード中にエラーが発生しました");
                         });
-                      }
+                        // アップロードに成功したとき
+                        const downloadUrl = await getDownloadURL(
+                          ref(storage, `/icons/${user.uid}`)
+                        ).catch(() => {
+                          alert("画像のダウンロード中にエラーが発生しました");
+                        });
+                        setUserImage(downloadUrl ?? undefined);
+                        setChatUserIcons((prev) => [
+                          ...prev.filter((item) => item.uid !== user.uid),
+                          {
+                            uid: user.uid,
+                            url: downloadUrl ?? undefined,
+                          },
+                        ]);
+                      }, "image/jpeg");
                     };
-                    reader.readAsDataURL(file);
-                  }
+                    if (typeof reader.result !== "string") {
+                      return;
+                    }
+                    img.src = reader.result;
+                  };
+                  reader.readAsDataURL(file);
                 }}
               />
               <div className="w-full">
@@ -425,7 +469,12 @@ const Home = () => {
           <div>
             {chats.map((chat) => (
               <div key={chat.id} className="m-4 flex border-b-2 pb-4">
-                <ChatIcon src={chat.photoURL ?? "/user.png"} />
+                <ChatIcon
+                  src={
+                    chatUserIcons.find((item) => item.uid === chat.uid)?.url ??
+                    "/user.png"
+                  }
+                />
                 <div className="mx-2 min-w-0 flex-1">
                   <div>
                     <span className="font-bold">{chat.name}</span>{" "}
