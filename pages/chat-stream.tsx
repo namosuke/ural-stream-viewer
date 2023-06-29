@@ -84,7 +84,7 @@ const ChatStream = () => {
               transformBox: "fill-box",
             }}
           >
-            <ChatIcon src={chat.photoURL ?? "/user.png"} size={70} />
+            <ChatIcon src={"/user.png"} size={70} />
             <div className="ml-4 mr-1">{chat.text}</div>
           </div>
         ))}
