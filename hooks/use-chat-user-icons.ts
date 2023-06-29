@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Chat } from "./use-chats";
-import { getDownloadURL, getStorage, ref } from "firebase/storage";
+import { getIconUrl } from "../utils/get-icon-url";
 
 export type ChatUserIcon = {
   uid: string;
@@ -11,7 +11,6 @@ export const useChatUserIcons = (chats: Chat[]) => {
   const [chatUserIcons, setChatUserIcons] = useState<ChatUserIcon[]>([]);
 
   useEffect(() => {
-    const storage = getStorage();
     const uids = chats.map((chat) => chat.uid);
     const uidsUnique = [...new Set(uids)];
     const chatNewImagePromises = uidsUnique
@@ -21,9 +20,7 @@ export const useChatUserIcons = (chats: Chat[]) => {
           false
       )
       .map(async (uid) => {
-        const downloadUrl = await getDownloadURL(
-          ref(storage, `/icons/${uid}`)
-        ).catch(() => undefined);
+        const downloadUrl = await getIconUrl(uid);
         return { uid, url: downloadUrl };
       });
     Promise.allSettled(chatNewImagePromises).then((result) =>

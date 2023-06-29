@@ -14,7 +14,7 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploadBytes } from "firebase/storage";
 import ChatIcon from "../components/chat-icon";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
@@ -26,6 +26,7 @@ import ElapsedTimeAbout from "../components/elapsed-time-about";
 import { useChats } from "../hooks/use-chats";
 import IosShareIcon from "@mui/icons-material/IosShare";
 import { useChatUserIcons } from "../hooks/use-chat-user-icons";
+import { getIconUrl } from "../utils/get-icon-url";
 
 interface HTMLVideoElementWithPip extends HTMLVideoElement {
   webkitPresentationMode: "inline" | "picture-in-picture" | "fullscreen";
@@ -95,7 +96,11 @@ const Home = () => {
   useEffect(() => {
     signInAnonymously(auth);
     auth.onAuthStateChanged(async (user) => {
-      if (user) setUser(user);
+      if (user) {
+        setUser(user);
+        const downloadUrl = await getIconUrl(user.uid);
+        setUserImage(downloadUrl);
+      }
       setIsAuthLoading(false);
     });
   }, [auth]);
@@ -375,17 +380,16 @@ const Home = () => {
                           alert("画像のアップロード中にエラーが発生しました");
                         });
                         // アップロードに成功したとき
-                        const downloadUrl = await getDownloadURL(
-                          ref(storage, `/icons/${user.uid}`)
-                        ).catch(() => {
-                          alert("画像のダウンロード中にエラーが発生しました");
-                        });
-                        setUserImage(downloadUrl ?? undefined);
+                        const downloadUrl = await getIconUrl(user.uid);
+                        if (downloadUrl === undefined) {
+                          alert("画像のアップロード中にエラーが発生しました");
+                        }
+                        setUserImage(downloadUrl);
                         setChatUserIcons((prev) => [
                           ...prev.filter((item) => item.uid !== user.uid),
                           {
                             uid: user.uid,
-                            url: downloadUrl ?? undefined,
+                            url: downloadUrl,
                           },
                         ]);
                       }, "image/jpeg");
