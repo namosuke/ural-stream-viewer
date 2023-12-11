@@ -1,7 +1,6 @@
 import Head from "next/head";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import Layout from "../components/layout";
-import Hls from "hls.js";
 import { getApp } from "firebase/app";
 import { getAuth, User, signInAnonymously } from "firebase/auth";
 import {
@@ -16,7 +15,6 @@ import {
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes } from "firebase/storage";
 import ChatIcon from "../components/chat-icon";
-import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
 import EditIcon from "@mui/icons-material/Edit";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -24,19 +22,19 @@ import Switch from "@mui/material/Switch";
 import ElapsedTime from "../components/elapsed-time";
 import ElapsedTimeAbout from "../components/elapsed-time-about";
 import { useChats } from "../hooks/use-chats";
-import IosShareIcon from "@mui/icons-material/IosShare";
 import { useChatUserIcons } from "../hooks/use-chat-user-icons";
 import { getIconUrl } from "../utils/get-icon-url";
-
-interface HTMLVideoElementWithPip extends HTMLVideoElement {
-  webkitPresentationMode: "inline" | "picture-in-picture" | "fullscreen";
-}
+import { Publish, useVideoControl } from "../hooks/use-video-control";
+import { useAutoLogin } from "../hooks/use-auto-login";
+import { usePip } from "../hooks/use-pip";
+import { LivePlayer } from "../components/live-player";
+import { YoutubePlayer } from "../components/youtube-player";
+import { ShareButton } from "../components/share-button";
+import { IconUploader } from "../components/icon-uploader";
 
 const Home = () => {
-  const source = "https://live.omugi.org/live/index.m3u8";
   const [videoSrc, setVideoSrc] = useState<string | undefined>();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hls = useRef<Hls>();
 
   const app = useMemo(() => getApp(), []);
   const auth = useMemo(() => getAuth(app), [app]);
@@ -51,59 +49,23 @@ const Home = () => {
   const chats = useChats(db);
   const [chatUserIcons, setChatUserIcons] = useChatUserIcons(chats);
 
-  const [isMuted, setIsMuted] = useState(true);
-
   const [isPipSupported, setIsPipSupported] = useState(false);
   const [isPipActive, setIsPipActive] = useState(false);
 
-  type Publish = {
-    createdAt: Date;
-    status: "liveStarted" | "liveEnded";
-  };
   const [publish, setPublish] = useState<Publish>();
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const [userImage, setUserImage] = useState<string | undefined>();
 
-  /* 動画配信情報制御 */
-  useEffect(() => {
-    (async () => {
-      if (publish?.status === "liveStarted") {
-        // リクエストが成功するまで再送
-        while (
-          await fetch(source)
-            .then((res) => !res.ok)
-            .catch(() => true)
-        ) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-        // autoPictureInPictureはSafari PWAのみ対応？
-        videoRef.current?.setAttribute("autoPictureInPicture", "");
-        if (videoRef.current?.canPlayType("application/vnd.apple.mpegurl")) {
-          setVideoSrc(source);
-        } else if (videoRef.current && Hls.isSupported()) {
-          hls.current = new Hls();
-          hls.current.loadSource(source);
-          hls.current.attachMedia(videoRef.current);
-        }
-      } else if (publish?.status === "liveEnded") {
-        setVideoSrc(undefined);
-        hls.current?.destroy();
-      }
-    })();
-  }, [videoRef, publish]);
+  useVideoControl(publish, videoRef, setVideoSrc);
 
-  /* 自動ログイン */
-  useEffect(() => {
-    signInAnonymously(auth);
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        setUser(user);
-        const downloadUrl = await getIconUrl(user.uid);
-        setUserImage(downloadUrl);
-      }
-      setIsAuthLoading(false);
-    });
-  }, [auth]);
+  const loginCallback = useCallback(async (user: User | null) => {
+    if (user) {
+      setUser(user);
+      setUserImage(await getIconUrl(user.uid));
+    }
+    setIsAuthLoading(false);
+  }, []);
+
+  useAutoLogin(auth, loginCallback);
 
   const chatSubmit = () => {
     if (user !== null && chatInput !== "") {
@@ -118,22 +80,11 @@ const Home = () => {
     }
   };
 
-  /* PiP */
   useEffect(() => {
     setIsPipSupported(document.pictureInPictureEnabled);
-    videoRef.current?.addEventListener("enterpictureinpicture", () => {
-      setIsPipActive(true);
-    });
-    videoRef.current?.addEventListener("leavepictureinpicture", () => {
-      setIsPipActive(false);
-    });
-    videoRef.current?.addEventListener("webkitpresentationmodechanged", () => {
-      setIsPipActive(
-        (videoRef.current as HTMLVideoElementWithPip)
-          ?.webkitPresentationMode === "picture-in-picture"
-      );
-    });
-  }, [videoSrc]);
+  }, []);
+
+  usePip(videoRef, setIsPipActive, videoSrc);
 
   const pipClick = async () => {
     if (!videoRef.current) return;
@@ -146,7 +97,7 @@ const Home = () => {
         setIsPipActive(false);
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 
@@ -173,10 +124,6 @@ const Home = () => {
     if (displayName) setDisplayName(displayName);
   }, []);
 
-  /* 画像リサイズ */
-  const maxWidth = 250;
-  const maxHeight = 250;
-
   return (
     <Layout>
       <Head>
@@ -198,95 +145,14 @@ const Home = () => {
       <div className="h-full min-h-screen w-full">
         <div className="m-2 text-center">ウラルのゲームライブ</div>
         {publish?.status === "liveStarted" && (
-          <div className="sticky top-0 z-20 bg-black">
-            <video
-              src={videoSrc}
-              ref={videoRef}
-              autoPlay
-              muted={isMuted}
-              playsInline
-              controls
-              poster="https://live.omugi.org/img/thumb.png"
-              className="mx-auto max-h-[50vh] max-w-full"
-              crossOrigin="anonymous"
-            ></video>
-            {isMuted && (
-              <button
-                className="absolute left-0 top-0 right-0 bottom-0"
-                onClick={() => {
-                  setIsMuted(false);
-                }}
-              >
-                <div className="absolute left-0 top-0 m-6 inline-block rounded-lg bg-slate-800 py-3 px-4 text-base text-white">
-                  <div className="flex items-center">
-                    <VolumeOffRoundedIcon className="mr-2" />
-                    ミュート解除
-                  </div>
-                </div>
-              </button>
-            )}
-          </div>
+          <LivePlayer videoRef={videoRef} videoSrc={videoSrc} />
         )}
-        {publish?.status === "liveEnded" && (
-          <div
-            className="mx-auto max-h-[50vh] max-w-full "
-            style={{
-              aspectRatio: "16/9",
-            }}
-          >
-            <iframe
-              className="h-full w-full"
-              width="560"
-              height="315"
-              src="https://www.youtube.com/embed/wEQ-EMrsYUM"
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          </div>
-        )}
+        {publish?.status === "liveEnded" && <YoutubePlayer />}
         <div className="mx-auto max-w-3xl">
           {publish?.status === "liveStarted" ? (
             <div className="flex items-center justify-between">
               <div className="m-2 flex items-center text-sm text-slate-400">
-                <button
-                  className="mx-2 text-slate-700"
-                  onClick={() => {
-                    if (videoRef.current) {
-                      const canvas = document.createElement("canvas");
-                      canvas.width = videoRef.current.videoWidth;
-                      canvas.height = videoRef.current.videoHeight;
-                      canvas
-                        .getContext("2d")
-                        ?.drawImage(
-                          videoRef.current,
-                          0,
-                          0,
-                          canvas.width,
-                          canvas.height
-                        );
-                      canvas.toBlob((blob) => {
-                        if (blob) {
-                          const file = new File([blob], "screenshot.png", {
-                            type: "image/png",
-                          });
-                          if (
-                            navigator.canShare &&
-                            navigator.canShare({ files: [file] })
-                          ) {
-                            navigator.share({
-                              files: [file],
-                              text: `#ural_live\n${window.location.href}`,
-                            });
-                          }
-                        }
-                      });
-                    }
-                  }}
-                >
-                  <IosShareIcon />
-                </button>
+                <ShareButton videoRef={videoRef} />
                 <ElapsedTime from={publish.createdAt} />
               </div>
               <FormControlLabel
@@ -324,82 +190,18 @@ const Home = () => {
           )}
           {user ? (
             <div className="flex items-start p-2">
-              <button
-                onClick={() => {
-                  imageInputRef.current?.click();
-                }}
-              >
-                <ChatIcon
-                  src={userImage ?? "/user.png"}
-                  className="mx-2 border-2 border-slate-300"
-                  addable
-                />
-              </button>
-              <input
-                accept="image/*"
-                type="file"
-                hidden
-                ref={imageInputRef}
-                onChange={(e) => {
-                  if (!(e.target.files && e.target.files[0])) return;
-                  const file = e.target.files[0];
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const img = new Image();
-                    img.onload = () => {
-                      const canvas = document.createElement("canvas");
-                      canvas.width = maxWidth;
-                      canvas.height = maxHeight;
-                      const ctx = canvas.getContext("2d");
-                      if (ctx === null) return;
-                      ctx.fillStyle = "white";
-                      ctx.fillRect(0, 0, canvas.width, canvas.height);
-                      const aspectRatio = img.width / img.height;
-                      const sx =
-                        aspectRatio > 1 ? (img.width - img.height) / 2 : 0;
-                      const sy =
-                        aspectRatio <= 1 ? (img.height - img.width) / 2 : 0;
-                      const sWidth = aspectRatio > 1 ? img.height : img.width;
-                      const sHeight = aspectRatio <= 1 ? img.width : img.height;
-                      ctx.drawImage(
-                        img,
-                        sx,
-                        sy,
-                        sWidth,
-                        sHeight,
-                        0,
-                        0,
-                        canvas.width,
-                        canvas.height
-                      );
-                      ctx.canvas.toBlob(async (blob) => {
-                        if (blob === null) return;
-                        const storage = getStorage();
-                        const storageRef = ref(storage, `/icons/${user.uid}`);
-                        await uploadBytes(storageRef, blob).catch(() => {
-                          alert("画像のアップロード中にエラーが発生しました");
-                        });
-                        // アップロードに成功したとき
-                        const downloadUrl = await getIconUrl(user.uid);
-                        if (downloadUrl === undefined) {
-                          alert("画像のアップロード中にエラーが発生しました");
-                        }
-                        setUserImage(downloadUrl);
-                        setChatUserIcons((prev) => [
-                          ...prev.filter((item) => item.uid !== user.uid),
-                          {
-                            uid: user.uid,
-                            url: downloadUrl,
-                          },
-                        ]);
-                      }, "image/jpeg");
-                    };
-                    if (typeof reader.result !== "string") {
-                      return;
-                    }
-                    img.src = reader.result;
-                  };
-                  reader.readAsDataURL(file);
+              <IconUploader
+                userImage={userImage}
+                user={user}
+                onUploadSuccess={(url) => {
+                  setUserImage(url);
+                  setChatUserIcons((prev) => [
+                    ...prev.filter((item) => item.uid !== user.uid),
+                    {
+                      uid: user.uid,
+                      url,
+                    },
+                  ]);
                 }}
               />
               <div className="w-full">
